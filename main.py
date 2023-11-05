@@ -1,6 +1,9 @@
-import cv2, numpy, tkinter, math, os
-from PIL import Image
+import math
+import os
+import tkinter
 from tkinter import filedialog
+
+from PIL import Image
 
 
 def part1():
@@ -10,9 +13,11 @@ def part1():
 
 
 def encode():
+    print("Select a text file you wish to hide:")
     root = tkinter.Tk()
     root.withdraw()
     secret_path = filedialog.askopenfilename()
+    print("Select a png cover file:")
     cover_path = filedialog.askopenfilename()
     root.destroy()
 
@@ -44,14 +49,14 @@ def encode():
         if i % ratio == 0 and (j < len(secret_bits_list)):
             if cover_bytes_list[i] % 2 == 0:
                 if secret_bits_list[j] == 1:
-                    cover_bytes_list[i] += 1
-                else:
                     cover_bytes_list[i] = cover_bytes_list[i]
+                else:
+                    cover_bytes_list[i] += 1
             if cover_bytes_list[i] % 2 != 0:
                 if secret_bits_list[j] == 0:
-                    cover_bytes_list[i] -= 1
-                else:
                     cover_bytes_list[i] = cover_bytes_list[i]
+                else:
+                    cover_bytes_list[i] -= 1
             j += 1
 
     image_type = cover_image.format
@@ -68,6 +73,8 @@ def encode():
 
 
 def decode():
+    print("Select the stego file you wish to unfold:")
+
     root = tkinter.Tk()
     root.withdraw()
     stego_path = filedialog.askopenfilename()
@@ -85,9 +92,9 @@ def decode():
     for i in range(len(stego_bytes_list)):
         if i % ratio == 0 and j <= secret_length:
             if stego_bytes_list[i] % 2 == 0:
-                secret_bit_list.append(0)
-            else:
                 secret_bit_list.append(1)
+            else:
+                secret_bit_list.append(0)
 
     secret_bit_string = ''.join(map(str, secret_bit_list))
     print(len(secret_bit_string))
@@ -99,7 +106,19 @@ def decode():
     print("Secret retrieved.")
 
 
+def part2():
+    [signature_content, directory] = create_hash()
+    print(directory)
+
+    with open(directory + '/signature.txt', 'w') as file:
+        file.write(''.join(signature_content))
+
+    part1()
+
+
 def create_hash():
+    print("Select a text file you wish to hash:")
+
     root = tkinter.Tk()
     root.withdraw()
     file_path = filedialog.askopenfilename()
@@ -109,77 +128,88 @@ def create_hash():
 
     file_content = file.read()  # retrieve the content from the file
 
-    file_length = len(file_content)
-
     file_bits = ''.join(format(ord(char), '08b') for char in file_content)  # convert the chars to bits of 8
     # each and concatenate them
 
     file_bytes = [file_bits[i:i + 8] for i in range(0, len(file_bits), 8)]
     file_bytes = [int(bit, 2) for bit in file_bytes]
-    # print("file_bits: ", file_bits)
-    # print("file_bytes", file_bytes)
-    # print("file length", file_length)
 
     countMap = {}
-    placeMap = {}
-    # oneCount = 0
-    # zeroCount = 0
-    #
-    # for i in file_bits:
-    #     if i == '1':
-    #         oneCount += 1
-    #     else:
-    #         zeroCount += 1
+    firstPlace_Map = {}
+    lastPlace_Map = {}
 
     for i, byte in enumerate(file_bytes):
         if byte in countMap:
             countMap[byte] += 1
         else:
             countMap[byte] = 1
-            placeMap[byte] = i
+            firstPlace_Map[byte] = i
+        lastPlace_Map[byte] = i
 
     count_bit_string = ''.join(format(byte, '08b') + format(count, '08b') for byte, count in countMap.items())
-    place_bit_string = ''.join(format(byte, '08b') + format(count, '08b') for byte, count in placeMap.items())
+    firstPlace_bit_string = ''.join(format(byte, '08b') + format(count, '08b') for byte, count in firstPlace_Map.items()
+                                    )
+    lastPlace_bit_string = ''.join(format(byte, '08b') + format(count, '08b') for byte, count in lastPlace_Map.items())
 
     countMap_8bit_list = [count_bit_string[i:i + 8] for i in range(0, len(count_bit_string), 8)]
-    placeMap_8bit_list = [place_bit_string[i:i + 8] for i in range(0, len(place_bit_string), 8)]
+    firstPlace_Map_8bit_list = [firstPlace_bit_string[i:i + 8] for i in range(0, len(firstPlace_bit_string), 8)]
+    lastPlace_Map_8bit_list = [lastPlace_bit_string[i:i + 8] for i in range(0, len(lastPlace_bit_string), 8)]
 
     countMap_byte_list = [int(bit, 2) for bit in countMap_8bit_list]
-    placeMap_byte_list = [int(bit, 2) for bit in placeMap_8bit_list]
+    firstPlace_Map_byte_list = [int(bit, 2) for bit in firstPlace_Map_8bit_list]
+    lastPlace_Map_byte_list = [int(bit, 2) for bit in lastPlace_Map_8bit_list]
 
     countMap_sum = 0
-    placeMap_sum = 0
+    firstPlace_Map_sum = 0
+    lastPlace_Map_sum = 0
 
     for byte in countMap_byte_list:
         countMap_sum += byte
 
-    for byte in placeMap_byte_list:
-        placeMap_sum += byte
+    for byte in firstPlace_Map_byte_list:
+        firstPlace_Map_sum += byte
+
+    for byte in lastPlace_Map_byte_list:
+        lastPlace_Map_sum += byte
 
     countMap_sum = bin(countMap_sum)[2:]
-    placeMap_sum = bin(placeMap_sum)[2:]
-    # zeroCount = bin(zeroCount)[2:]
-    # oneCount = bin(oneCount)[2:]
+    firstPlace_Map_sum = bin(firstPlace_Map_sum)[2:]
+    lastPlace_Map_sum = bin(lastPlace_Map_sum)[2:]
+
     hashMap_sum = '{:032b}'.format(int(countMap_sum, 2))
-    placeMap_sum = '{:032b}'.format(int(placeMap_sum, 2))
-    # zeroCount = '{:0>32}'.format(zeroCount)
-    # oneCount = '{:0>32}'.format(oneCount)
+    firstPlace_Map_sum = '{:032b}'.format(int(firstPlace_Map_sum, 2))
+    lastPlace_Map_sum = '{:032b}'.format(int(lastPlace_Map_sum, 2))
 
     print(hashMap_sum)
-    # print(zeroCount)
-    # print(oneCount)
 
-    # place map sum will be reversed as a string and concatenated to count map sum
-    reversed_placeMap_sum = placeMap_sum[::-1]
-    print(reversed_placeMap_sum)
+    # firstPlace_ map sum will be reversed as a string and concatenated to count map sum
+    reversed_firstPlace_Map_sum = firstPlace_Map_sum[::-1]
+    print(reversed_firstPlace_Map_sum)
 
-    signature_bits = countMap_sum + reversed_placeMap_sum
+    signature_bits = countMap_sum + reversed_firstPlace_Map_sum + lastPlace_Map_sum
 
-    signature = '{:064b}'.format(int(signature_bits, 2))
+    signature = '{:096b}'.format(int(signature_bits, 2))
+    signature_list = [bit for bit in signature]
 
-    print(signature)
+    parent_directory = os.path.dirname(file_path)
+
+    return [signature_list, parent_directory]
+
+
+def test_collision(signature1, signature2):
+    print(int(signature1) - int(signature2))
+
 
 if __name__ == "__main__":
-    encode()
+    part1()
 
-    decode()
+    # part2()
+
+    # 000000000000000000010001111110100111101100111000000000000000000000000000000000000010111010110000
+
+    # 000000000000000000010001111110010111101100111000000000000000000000000000000000000010111010101110
+
+    # test_collision("0000000000000000000100011111101001111011001110000000000000000000000000000000000000101"
+    #                "11010110000",
+    #                "0000000000000000000100011111100101111011001110000000000000000000000000000000000000101"
+    #                "11010101110")
